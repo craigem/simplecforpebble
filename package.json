@@ -24,7 +24,14 @@
       "dummy"
     ],
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "font",
+          "name": "FONT_PERFECT_DOS_48",
+          "file": "fonts/perfect-dos-vga.ttf",
+          "compatability":"2.7"
+        }
+      ]
     }
   }
 }
