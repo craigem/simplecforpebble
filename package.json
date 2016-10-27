@@ -1,6 +1,7 @@
 {
   "name": "simplecforpebble",
-  "author": "MakeAwesomeHappen",
+  "author": "craige",
+  "companyName": "mcwhirter.io",
   "version": "1.0.0",
   "keywords": ["pebble-app"],
   "private": true,
