@@ -30,6 +30,11 @@
           "name": "FONT_PERFECT_DOS_48",
           "file": "fonts/perfect-dos-vga.ttf",
           "compatability":"2.7"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BACKGROUND",
+          "file": "images/background.png"
         }
       ]
     }
