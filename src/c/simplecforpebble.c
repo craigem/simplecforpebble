@@ -3,6 +3,7 @@
 static Window *s_main_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
+static Layer *s_battery_layer;
 
 static BitmapLayer *s_background_layer;
 static GBitmap *s_background_bitmap;
@@ -10,6 +11,16 @@ static GBitmap *s_background_bitmap;
 // Declare globally
 static GFont s_time_font;
 static GFont s_weather_font;
+
+static int s_battery_level;
+
+static void battery_callback(BatteryChargeState state) {
+  // Record the new battery level
+  s_battery_level = state.charge_percent;
+
+  // Update meter
+  layer_mark_dirty(s_battery_layer);
+}
 
 static void inbox_received_callback( DictionaryIterator *iterator, void *context) {
   // Store incoming information
@@ -57,6 +68,21 @@ static void update_time() {
 
   // Display this time on the TextLayer
   text_layer_set_text(s_time_layer, s_buffer);
+}
+
+static void battery_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+
+  // Find the width of the bar
+  int width = (int)(float)(((float)s_battery_level / 100.0F) * 114.0F);
+
+  // Draw the background
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+  // Draw the bar
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, GRect(0, 0, width, bounds.size.h), 0, GCornerNone);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -127,6 +153,13 @@ static void main_window_load(Window *window) {
   text_layer_set_font(s_weather_layer, s_weather_font);
   layer_add_child(window_get_root_layer(window),
     text_layer_get_layer(s_weather_layer));
+
+  // Create battery meter Layer
+  s_battery_layer = layer_create(GRect(14, 53, 115, 2));
+  layer_set_update_proc(s_battery_layer, battery_update_proc);
+
+  // Add to window
+  layer_add_child(window_get_root_layer(window), s_battery_layer);
 }
 
 static void main_window_unload(Window *window) {
@@ -145,6 +178,9 @@ static void main_window_unload(Window *window) {
   // Destroy weather elements
   text_layer_destroy(s_weather_layer);
   fonts_load_custom_font(s_weather_font);
+
+  // Destroy battery level
+  layer_destroy(s_battery_layer);
 }
 
 static void init() {
@@ -179,6 +215,12 @@ static void init() {
   const int inbox_size = 128;
   const int outbox_size = 128;
   app_message_open(inbox_size, outbox_size);
+
+  // Register for battery level updates
+  battery_state_service_subscribe(battery_callback);
+
+  // Ensure battery level is displayed from the start
+  battery_callback(battery_state_service_peek());
 }
 
 static void deinit() {
