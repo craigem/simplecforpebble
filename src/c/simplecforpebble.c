@@ -5,14 +5,24 @@ static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
 static Layer *s_battery_layer;
 
-static BitmapLayer *s_background_layer;
-static GBitmap *s_background_bitmap;
+static BitmapLayer *s_background_layer, *s_bt_icon_layer;
+static GBitmap *s_background_bitmap, *s_bt_icon_bitmap;
 
 // Declare globally
 static GFont s_time_font;
 static GFont s_weather_font;
 
 static int s_battery_level;
+
+static void bluetooth_callback(bool connected) {
+  // Show icon if disconnected
+  layer_set_hidden(bitmap_layer_get_layer(s_bt_icon_layer), connected);
+
+  if(!connected) {
+    // Issue a vibrating alert
+    vibes_double_pulse();
+  }
+}
 
 static void battery_callback(BatteryChargeState state) {
   // Record the new battery level
@@ -160,6 +170,17 @@ static void main_window_load(Window *window) {
 
   // Add to window
   layer_add_child(window_get_root_layer(window), s_battery_layer);
+
+  // Create the Bluetooth icon GBitmap
+  s_bt_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BT_ICON);
+
+  // Create the Bitmaplayer to display the GBitmap
+  s_bt_icon_layer = bitmap_layer_create(GRect(59, 12, 30, 30));
+  bitmap_layer_set_bitmap(s_bt_icon_layer, s_bt_icon_bitmap);
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_bt_icon_layer));
+
+  // Show the correct state of the Bluetooth connection from the start
+  bluetooth_callback(connection_service_peek_pebble_app_connection());
 }
 
 static void main_window_unload(Window *window) {
@@ -181,6 +202,10 @@ static void main_window_unload(Window *window) {
 
   // Destroy battery level
   layer_destroy(s_battery_layer);
+
+  // Destroy Bluetooth indicator
+  gbitmap_destroy(s_bt_icon_bitmap);
+  bitmap_layer_destroy(s_bt_icon_layer);
 }
 
 static void init() {
@@ -221,6 +246,11 @@ static void init() {
 
   // Ensure battery level is displayed from the start
   battery_callback(battery_state_service_peek());
+
+  // Register for Bluetooth connection updates
+  connection_service_subscribe((ConnectionHandlers) {
+    .pebble_app_connection_handler = bluetooth_callback
+  });
 }
 
 static void deinit() {
